@@ -1,14 +1,19 @@
-import React from "react";
-import { Sidebar, Hero, Layout, AvatarList } from "./components";
+import { Sidebar, Hero, Layout, AvatarList, Register } from "./components";
+import { ConnectionProvider, FriendsProvider } from "./provider";
 
 function App() {
   return (
-    <Layout>
-      <Sidebar>
-        <AvatarList />
-      </Sidebar>
-      <Hero />
-    </Layout>
+    <ConnectionProvider>
+      <Register />
+      <Layout>
+        <FriendsProvider>
+          <Sidebar>
+            <AvatarList />
+          </Sidebar>
+        </FriendsProvider>
+        <Hero />
+      </Layout>
+    </ConnectionProvider>
   );
 }
 

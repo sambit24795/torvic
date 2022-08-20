@@ -11,8 +11,8 @@ const AvatarList: FunctionComponent<AvatarListProps> = ({ invitations }) => {
       {Array(20)
         .fill(<Avatar />)
         .map((c) => (
-          <div className="flex items-center justify-start">
-            <Avatar key={Math.random()} />
+          <div key={Math.random()} className="flex items-center justify-start">
+            <Avatar />
             <span className="px-4 cursor-pointer hover:text-primary-focus">
               Sambit Nayak
             </span>

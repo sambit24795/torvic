@@ -1,47 +1,42 @@
 import React, {
   FunctionComponent,
   PropsWithChildren,
-  useEffect,
   useRef,
   useState,
 } from "react";
 import { Modal } from "../../ui";
 
 import { classNames } from "../utils";
+import { useFriends } from "../../provider";
+import { useClickOutside } from "../../hooks";
 
 const Sidebar: FunctionComponent<PropsWithChildren> = ({ children }) => {
   const [friendsSelected, setFriendsSelected] = useState<boolean>(false);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
 
+  const { friendsData } = useFriends();
+
+  console.log({ friendsData });
+
   const ref = useRef<HTMLLabelElement>(null);
+
+  useClickOutside(ref, () => {
+    setModalOpen(false);
+  });
 
   const friendsSelectHandler = () => {
     setFriendsSelected((prevState) => !prevState);
   };
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent): void {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setModalOpen(false);
-      }
-    }
-    // Bind the event listener
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      // Unbind the event listener on clean up
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  });
-
   return (
     <>
       <Modal id="my-modal" open={modalOpen} ref={ref}>
-        <h3 className="text-lg font-bold">Enter the friend email id</h3>
+        <h3 className="text-lg font-bold">Invite your friend</h3>
         <div className="form-control">
-          <p className="py-4">enter the email id</p>
+          <p className="py-4">enter an username</p>
           <input
             type="text"
-            placeholder="test@test.com"
+            placeholder="test123"
             className="w-full max-w-xs input input-bordered input-primary"
           />
         </div>
