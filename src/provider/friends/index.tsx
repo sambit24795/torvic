@@ -1,3 +1,4 @@
+import { useSocket } from "../../hooks";
 import {
   createContext,
   FunctionComponent,
@@ -11,6 +12,7 @@ type FriendsContextType = {
   setFriends: (_friends: Array<string>) => void;
   setInvitations: (_invitations: Array<string>) => void;
   setOnlineUsers: (_onlineUsers: Array<string>) => void;
+  getSocket: () => void;
 };
 
 interface FriendsState {
@@ -59,12 +61,22 @@ const FriendsContext = createContext<FriendsContextType>({
   setFriends: () => {},
   setInvitations: () => {},
   setOnlineUsers: () => {},
+  getSocket: () => {},
 });
 
 const FriendsProvider: FunctionComponent<PropsWithChildren> = ({
   children,
 }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  const getSocket = useSocket({
+    onInvitation: (invites) => {
+      setInvitations(invites);
+    },
+    onFriendUpdated: (friends) => {
+      setFriends(friends);
+    },
+  });
 
   const setFriends = (friends: Array<string>) => {
     dispatch({ type: ActionTypes.FRIENDS, payload: friends });
@@ -85,6 +97,7 @@ const FriendsProvider: FunctionComponent<PropsWithChildren> = ({
         setFriends,
         setInvitations,
         setOnlineUsers,
+        getSocket,
       }}
     >
       {children}

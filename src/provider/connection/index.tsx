@@ -14,18 +14,14 @@ type ConnectionContextType = {
   socketInstance: Socket | null;
   username: string;
   connectSocket: ConnectSocket;
-  setSocketData: (_socket: Socket, _SocketData: string) => void;
+  error: string;
 };
 
 const ConnectionContext = createContext<ConnectionContextType>({
   socketInstance: null,
   username: "",
-  connectSocket: () => ({
-    error: null,
-    socket: null,
-    socketUser: null,
-  }),
-  setSocketData: () => {},
+  connectSocket: () => {},
+  error: "",
 });
 
 const ConnectionProvider: FunctionComponent<PropsWithChildren> = ({
@@ -33,17 +29,30 @@ const ConnectionProvider: FunctionComponent<PropsWithChildren> = ({
 }) => {
   const [socketInstance, setSocketInstance] = useState<Socket | null>(null);
   const [username, setUsername] = useState<string>("");
-
-  const connectSocket = useSocket();
+  const [error, setError] = useState<string>("");
 
   const setSocketData = (socket: Socket, socketUser: string) => {
     setSocketInstance(socket);
     setUsername(socketUser);
   };
 
+  const onError = (message: string) => {
+    setError(message);
+  };
+
+  const connectSocket = useSocket({
+    onDataAdded: setSocketData,
+    onError,
+  });
+
   return (
     <ConnectionContext.Provider
-      value={{ socketInstance, username, connectSocket, setSocketData }}
+      value={{
+        socketInstance,
+        username,
+        connectSocket,
+        error,
+      }}
     >
       {children}
     </ConnectionContext.Provider>

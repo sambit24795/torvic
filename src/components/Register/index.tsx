@@ -5,23 +5,14 @@ import { classNames } from "../utils/index";
 
 const Register = () => {
   const [input, setInput] = useState<string>("");
-  const [error, setError] = useState<string>("");
+  //const [error, setError] = useState<string>("");
 
   const modalRef = useRef<HTMLLabelElement>(null);
 
-  const { connectSocket, setSocketData, username, socketInstance } =
-    useConnection();
+  const { connectSocket, username, socketInstance, error } = useConnection();
 
   const submitHandler = () => {
-    connectSocket(
-      input.trim(),
-      (socket, username) => {
-        setSocketData(socket, username);
-      },
-      (message) => {
-        setError(message);
-      }
-    );
+    connectSocket(input.trim());
   };
 
   return (
@@ -35,7 +26,7 @@ const Register = () => {
         <p className="py-4">enter an username</p>
         <input
           type="text"
-          placeholder="test123"
+          placeholder="type here"
           className={classNames(
             "w-full max-w-xs input input-bordered input-primary",
             error ? "input-error" : ""

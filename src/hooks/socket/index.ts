@@ -1,35 +1,51 @@
-import io from "socket.io-client";
-import { OnDataAdded, OnError } from "../types/";
+import io, { Socket } from "socket.io-client";
+import { SocketCallbacks } from "../types/index";
 
-function useSocket() {
-  return function (
-    username: string,
-    onDataAdded?: OnDataAdded,
-    onError?: OnError
-  ) {
-    if (!username) {
+let socket: Socket | null;
+
+function connect(username?: string) {
+  if (!socket) {
+    socket = io("http://localhost:4000", {
+      auth: { user: { username } },
+    });
+  }
+
+  return socket;
+}
+
+function useSocket(cb?: SocketCallbacks) {
+  return function (username?: string) {
+    if (!username && !socket) {
       return;
     }
 
-    const socket = io("http://localhost:4000", {
-      auth: { user: { username } },
-    });
+    const socketInstance = connect(username);
 
-    socket.on("connect", () => {
-      console.log("connected with the server", socket!.id);
-    });
-
-    socket.on("error", (err) => {
+    socketInstance.on("error", (err) => {
       console.log("got an error", err);
-      if (onError) {
-        onError(err.message);
+      if (cb?.onError) {
+        cb.onError(err.message);
       }
     });
 
-    socket.on("add-user", (data) => {
+    socketInstance.on("add-user", (data) => {
       console.log("user added", data.user);
-      if (onDataAdded) {
-        onDataAdded(socket!, data.user.username);
+      if (cb?.onDataAdded) {
+        cb.onDataAdded(socketInstance!, data.user.username);
+      }
+    });
+
+    socketInstance.on("invite-user", (data) => {
+      console.log("invitations", data);
+      if (cb?.onInvitation) {
+        cb.onInvitation(data.userInvitations);
+      }
+    });
+
+    socketInstance.on("add-friend", (data) => {
+      console.log("friends", data);
+      if (cb?.onFriendUpdated) {
+        cb.onFriendUpdated(data.friends);
       }
     });
   };

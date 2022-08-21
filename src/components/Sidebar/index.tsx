@@ -4,17 +4,29 @@ import React, {
   useRef,
   useState,
 } from "react";
+import axios from "axios";
+
 import { Modal } from "../../ui";
-
 import { classNames } from "../utils";
-import { useFriends } from "../../provider";
+import { useFriends, useConnection } from "../../provider";
 import { useClickOutside } from "../../hooks";
+import AvatarList from "../AvatarList";
 
-const Sidebar: FunctionComponent<PropsWithChildren> = ({ children }) => {
-  const [friendsSelected, setFriendsSelected] = useState<boolean>(false);
+enum Tabs {
+  FRIENDS = "FRIENDS",
+  INVITATIONS = "INVITATIONS",
+}
+
+const Sidebar: FunctionComponent<PropsWithChildren> = () => {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [tab, setTab] = useState<Tabs>(Tabs.FRIENDS);
+  const [input, setInput] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
-  const { friendsData } = useFriends();
+  const { getSocket, friendsData } = useFriends();
+  const { username } = useConnection();
+
+  getSocket();
 
   console.log({ friendsData });
 
@@ -24,8 +36,25 @@ const Sidebar: FunctionComponent<PropsWithChildren> = ({ children }) => {
     setModalOpen(false);
   });
 
-  const friendsSelectHandler = () => {
-    setFriendsSelected((prevState) => !prevState);
+  const selectTabHandler = (tab: Tabs) => {
+    if (tab === Tabs.FRIENDS) {
+      setTab(Tabs.FRIENDS);
+    } else if (tab === Tabs.INVITATIONS) {
+      setTab(Tabs.INVITATIONS);
+    }
+  };
+
+  const submitHandler = async () => {
+    const { data } = await axios.post("http://localhost:4000/api/invite-user", {
+      username,
+      friend: input.trim(),
+    });
+
+    if (data.type === "success") {
+      setModalOpen(false);
+    } else {
+      setError(data.message);
+    }
   };
 
   return (
@@ -36,15 +65,18 @@ const Sidebar: FunctionComponent<PropsWithChildren> = ({ children }) => {
           <p className="py-4">enter an username</p>
           <input
             type="text"
-            placeholder="test123"
-            className="w-full max-w-xs input input-bordered input-primary"
+            placeholder="type here"
+            className={classNames(
+              "w-full max-w-xs input input-bordered input-primary",
+              error ? "input-error" : ""
+            )}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
           />
+          {error ? <p className="py-1 text-sm text-error">{error}</p> : null}
         </div>
         <div className="modal-action">
-          <button
-            onClick={() => setModalOpen(false)}
-            className="btn btn-primary"
-          >
+          <button onClick={submitHandler} className="btn btn-primary">
             submit
           </button>
         </div>
@@ -58,23 +90,31 @@ const Sidebar: FunctionComponent<PropsWithChildren> = ({ children }) => {
             Add Friend
           </button>
         </div>
-        {children}
+        <AvatarList
+        username={username}
+          invitationList={
+            tab === Tabs.INVITATIONS
+              ? friendsData.invitations
+              : friendsData.friends
+          }
+          invitations={tab === Tabs.INVITATIONS}
+        />
         <div className="relative btm-nav">
           <button
             className={classNames(
               "text-primary border-primary transition-all",
-              friendsSelected ? "border-t" : ""
+              tab === Tabs.FRIENDS ? "border-t" : ""
             )}
-            onClick={friendsSelectHandler}
+            onClick={selectTabHandler.bind(null, Tabs.FRIENDS)}
           >
             friends
           </button>
           <button
             className={classNames(
               "text-primary border-primary transition-all",
-              friendsSelected ? "" : "border-t"
+              tab === Tabs.INVITATIONS ? "border-t" : ""
             )}
-            onClick={friendsSelectHandler}
+            onClick={selectTabHandler.bind(null, Tabs.INVITATIONS)}
           >
             invitations
           </button>
