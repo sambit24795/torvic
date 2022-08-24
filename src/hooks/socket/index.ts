@@ -1,5 +1,5 @@
 import io, { Socket } from "socket.io-client";
-import { SocketCallbacks } from "../types/index";
+import { SocketCallbacks, Chat, RoomType } from "../types";
 
 let socket: Socket | null;
 
@@ -48,6 +48,32 @@ function useSocket(cb?: SocketCallbacks) {
         cb.onFriendUpdated(data.friends);
       }
     });
+
+    socketInstance.on("receive-message", (data) => {
+      console.log("received message", data);
+      if (cb?.onMessageReceived) {
+        cb.onMessageReceived(data);
+      }
+    });
+
+    socketInstance.on("receive-room", (data) => {
+      console.log("received room", data);
+      if (cb?.onRoomnameReceived) {
+        cb.onRoomnameReceived(data);
+      }
+    });
+  };
+}
+
+export function useEvent() {
+  return function (socket: Socket, data: Chat) {
+    socket.emit("send-message", data);
+  };
+}
+
+export function useRoom() {
+  return function (socket: Socket, data: RoomType) {
+    socket.emit("send-room", data);
   };
 }
 

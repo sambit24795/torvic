@@ -1,4 +1,4 @@
-import { Sidebar, Hero, Layout, Register } from "./components";
+import { Sidebar, Hero, Layout, Register, Profilebar } from "./components";
 import { ConnectionProvider, FriendsProvider } from "./provider";
 
 function App() {
@@ -7,9 +7,10 @@ function App() {
       <Register />
       <Layout>
         <FriendsProvider>
+          <Profilebar />
           <Sidebar />
+          <Hero />
         </FriendsProvider>
-        <Hero />
       </Layout>
     </ConnectionProvider>
   );

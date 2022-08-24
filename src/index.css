@@ -13,12 +13,21 @@
   }
 
   .scrollbar::-webkit-scrollbar-thumb {
-    background: #1EB854;
+    background: #1eb854;
     border-radius: 100vh;
     border: 3px solid #262626;
   }
 
   .scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #1EB854;
+    background: #1eb854;
+  }
+
+  .max-content-height {
+    max-height: 824px;
   }
 }
+
+/* * {
+  background: rgba(106, 255, 0, 0.2);
+} */
+

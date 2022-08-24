@@ -2,14 +2,14 @@ import { useRef, useState } from "react";
 import { Modal } from "../../ui";
 import { useConnection } from "../../provider/connection/index";
 import { classNames } from "../utils/index";
+import { useSocket } from "../../hooks";
 
 const Register = () => {
   const [input, setInput] = useState<string>("");
-  //const [error, setError] = useState<string>("");
 
   const modalRef = useRef<HTMLLabelElement>(null);
 
-  const { connectSocket, username, socketInstance, error } = useConnection();
+  const { username, socketInstance, error, connectSocket } = useConnection();
 
   const submitHandler = () => {
     connectSocket(input.trim());

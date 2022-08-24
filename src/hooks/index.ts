@@ -1,2 +1,2 @@
-export { default as useSocket } from "./socket";
+export { default as useSocket, useEvent, useRoom } from "./socket";
 export { useClickOutside } from "./utils";

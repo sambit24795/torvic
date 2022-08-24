@@ -1,4 +1,4 @@
-import React, {
+import {
   FunctionComponent,
   PropsWithChildren,
   useRef,
@@ -9,7 +9,7 @@ import axios from "axios";
 import { Modal } from "../../ui";
 import { classNames } from "../utils";
 import { useFriends, useConnection } from "../../provider";
-import { useClickOutside } from "../../hooks";
+import { useClickOutside, useRoom } from "../../hooks";
 import AvatarList from "../AvatarList";
 
 enum Tabs {
@@ -23,14 +23,17 @@ const Sidebar: FunctionComponent<PropsWithChildren> = () => {
   const [input, setInput] = useState<string>("");
   const [error, setError] = useState<string>("");
 
-  const { getSocket, friendsData } = useFriends();
-  const { username } = useConnection();
-
-  getSocket();
+  const {
+    friendsData,
+    setSelectedUser,
+  } = useFriends();
+  const { username, socketInstance } = useConnection();
 
   console.log({ friendsData });
 
   const ref = useRef<HTMLLabelElement>(null);
+
+  const sendRoom = useRoom();
 
   useClickOutside(ref, () => {
     setModalOpen(false);
@@ -55,6 +58,27 @@ const Sidebar: FunctionComponent<PropsWithChildren> = () => {
     } else {
       setError(data.message);
     }
+  };
+
+  const avatarClickHandler = (name: string) => {
+    if (tab === Tabs.INVITATIONS || !socketInstance) {
+      return;
+    }
+
+    setSelectedUser(name);
+    if (
+      friendsData.userChats.get(`${name}-${username}`) ||
+      friendsData.userChats.get(`${username}-${name}`)
+    ) {
+      return;
+    }
+
+    sendRoom(socketInstance, {
+      friends: [name],
+      roomname: `${username}-${name}`,
+      username,
+    });
+    
   };
 
   return (
@@ -91,12 +115,14 @@ const Sidebar: FunctionComponent<PropsWithChildren> = () => {
           </button>
         </div>
         <AvatarList
-        username={username}
+          onClick={avatarClickHandler}
+          username={username}
           invitationList={
             tab === Tabs.INVITATIONS
               ? friendsData.invitations
               : friendsData.friends
           }
+          selectedUser={friendsData.selectedUser}
           invitations={tab === Tabs.INVITATIONS}
         />
         <div className="relative btm-nav">
