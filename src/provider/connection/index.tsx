@@ -8,7 +8,7 @@ import { useState } from "react";
 import { Socket } from "socket.io-client";
 
 import { useSocket } from "../../hooks";
-import { Chat, ConnectSocket } from "../../hooks/types";
+import { Chat, ConnectSocket, Room } from "../../hooks/types";
 
 type ConnectionContextType = {
   socketInstance: Socket | null;
@@ -19,7 +19,7 @@ type ConnectionContextType = {
   onError: (message: string) => void;
   invites: Array<string>;
   friends: Array<string>;
-  room: string;
+  room: Room | null;
   chat: Chat | null;
 };
 
@@ -32,8 +32,8 @@ const ConnectionContext = createContext<ConnectionContextType>({
   onError: () => {},
   invites: [],
   friends: [],
-  room: "",
-  chat: null
+  room: null,
+  chat: null,
 });
 
 const ConnectionProvider: FunctionComponent<PropsWithChildren> = ({
@@ -44,7 +44,7 @@ const ConnectionProvider: FunctionComponent<PropsWithChildren> = ({
   const [error, setError] = useState<string>("");
   const [invites, setInvites] = useState<Array<string>>([]);
   const [friends, setFriends] = useState<Array<string>>([]);
-  const [roomname, setRoomname] = useState<string>("");
+  const [room, setRoom] = useState<Room | null>(null);
   const [chat, setChat] = useState<Chat | null>(null);
 
   const setSocketData = (socket: Socket, socketUser: string) => {
@@ -67,14 +67,14 @@ const ConnectionProvider: FunctionComponent<PropsWithChildren> = ({
       console.log("connection friends", friends);
       setFriends(friends);
     },
-    onRoomnameReceived: (roomname) => {
-      console.log("connection roomname", roomname);
-      setRoomname(roomname);
+    onRoomnameReceived: (data) => {
+      console.log("connection roomname", data);
+      setRoom(data);
     },
     onMessageReceived: (data) => {
       console.log("connection chat", data);
       setChat(data);
-    }
+    },
   });
 
   return (
@@ -88,8 +88,8 @@ const ConnectionProvider: FunctionComponent<PropsWithChildren> = ({
         onError,
         invites,
         friends,
-        room: roomname,
-        chat
+        room,
+        chat,
       }}
     >
       {children}

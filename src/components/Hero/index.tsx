@@ -3,7 +3,7 @@ import Navbar from "../Navbar";
 import { useFriends, useConnection } from "../../provider";
 import { classNames } from "../utils";
 import MessageBox from "../MessageBox";
-import { useEvent } from '../../hooks';
+import { useEvent } from "../../hooks";
 
 const Hero: FunctionComponent = () => {
   const {
@@ -13,9 +13,7 @@ const Hero: FunctionComponent = () => {
 
   const sendEvent = useEvent();
 
-  const chats =
-    userChats.get(`${username}-${selectedUser}`) ??
-    userChats.get(`${selectedUser}-${username}`);
+  const chats = userChats.get(selectedUser?.token!);
 
   console.log({ userChats, chats });
 
@@ -24,27 +22,30 @@ const Hero: FunctionComponent = () => {
       return;
     }
 
+    console.log({ selectedUser });
+
     sendEvent(socketInstance, {
       from: username,
-      to: selectedUser,
+      to: selectedUser?.user!,
       message,
+      token: selectedUser?.token!
     });
   };
 
   const isSelectedUserFriend = !!friends.find(
-    (friend) => friend === selectedUser
+    (friend) => friend === selectedUser?.user
   );
 
   return (
     <div className="flex flex-col overflow-auto">
-      {isSelectedUserFriend ? <Navbar username={selectedUser} /> : null}
-      <div className="flex-col items-start justify-start flex-1 overflow-y-auto scrollbar hero-content ">
+      {isSelectedUserFriend ? <Navbar username={selectedUser?.user!} /> : null}
+      <div className="flex-col items-start justify-start flex-1 w-full h-full overflow-y-auto scrollbar hero-content ">
         {chats?.length ? (
           chats.map(({ from, message }, index) => (
             <div
               key={index}
               className={classNames(
-                "w-4/5 ml-auto border card border-primary-content bg-base-100",
+                "w-4/5 ml-auto border card border-primary-content bg-base-100 overflow-visible",
                 from === username ? "ml-0" : "mr-0"
               )}
             >

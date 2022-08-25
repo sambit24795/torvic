@@ -10,7 +10,7 @@ export type OnInvitation = (invites: Array<string>) => void;
 
 export type OnFriendUpdated = (_friends: Array<string>) => void;
 
-export type OnRoomnameReceived = (_roomname: string) => void;
+export type OnRoomnameReceived = (_data: Room) => void;
 
 export type OnMessageReceived = (_data: Chat) => void;
 
@@ -27,6 +27,7 @@ export type Chat = {
   to: string;
   from: string;
   message: string;
+  token: string;
 };
 
 export type ConnectSocket = (_username: string) => void;
@@ -40,3 +41,13 @@ export type RoomType = {
 };
 
 export type SendRoomType = (socket: Socket, data: RoomType) => void;
+
+export type RoomData = {
+  friends: Array<string>;
+  token: string;
+};
+
+export type Room = {
+  initiator: string;
+  data: RoomData;
+};

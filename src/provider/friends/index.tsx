@@ -7,8 +7,7 @@ import {
   useReducer,
 } from "react";
 
-import { useSocket, useEvent, useRoom } from "../../hooks";
-import { SendEventType, SendRoomType, Chat } from "../../hooks/types";
+import { Chat, Room } from "../../hooks/types";
 import { useConnection } from "../connection";
 
 type FriendsContextType = {
@@ -16,16 +15,24 @@ type FriendsContextType = {
   setFriends: (_friends: Array<string>) => void;
   setInvitations: (_invitations: Array<string>) => void;
   setOnlineUsers: (_onlineUsers: Array<string>) => void;
-  setSelectedUser: (_selectedUser: string) => void;
+  setSelectedUser: (_selectedUser: SelectedUser) => void;
   setUserChats: (_userChats: Map<string, Array<Chat>>) => void;
 };
+
+interface SelectedUser {
+  user: string;
+  token: string;
+}
+
+type UserChat = Omit<Chat, "token">;
 
 interface FriendsState {
   friends: Array<string>;
   invitations: Array<string>;
   onlineUsers: Array<String>;
-  selectedUser: string;
-  userChats: Map<string, Array<Chat>>;
+  selectedUser: SelectedUser | null;
+  userChats: Map<string, Array<UserChat>>;
+  rooms: Array<Room>;
 }
 
 enum ActionTypes {
@@ -34,6 +41,7 @@ enum ActionTypes {
   ONLINEUSERS = "ONLINEUSERS",
   SELECTEDUSER = "SELECTEDUSER",
   USERCHATS = "USERCHATS",
+  ROOM = "ROOM",
 }
 
 interface Action {
@@ -45,14 +53,18 @@ interface FriendsType extends Action {
 }
 
 interface SelectedUserType extends Action {
-  payload: string;
+  payload: SelectedUser;
 }
 
 interface UserChatsType extends Action {
-  payload: Map<string, Array<Chat>>;
+  payload: Map<string, Array<UserChat>>;
 }
 
-type FriendsAction = FriendsType | SelectedUserType | UserChatsType;
+interface RoomType extends Action {
+  payload: Room;
+}
+
+type FriendsAction = FriendsType | SelectedUserType | UserChatsType | RoomType;
 
 type FriendsReducer<T, U> = (_state: T, _action: U) => T;
 
@@ -60,8 +72,9 @@ const initialState: FriendsState = {
   friends: [],
   invitations: [],
   onlineUsers: [],
-  selectedUser: "",
+  selectedUser: null,
   userChats: new Map(),
+  rooms: [],
 };
 
 const reducer: FriendsReducer<FriendsState, FriendsAction> = (
@@ -76,12 +89,16 @@ const reducer: FriendsReducer<FriendsState, FriendsAction> = (
     case ActionTypes.ONLINEUSERS:
       return { ...state, onlineUsers: action.payload as string[] };
     case ActionTypes.SELECTEDUSER:
-      return { ...state, selectedUser: action.payload as string };
+      return { ...state, selectedUser: action.payload as SelectedUser };
     case ActionTypes.USERCHATS:
       return {
         ...state,
-        userChats: action.payload as Map<string, Array<Chat>>,
+        userChats: action.payload as Map<string, Array<UserChat>>,
       };
+    case ActionTypes.ROOM:
+      const allRooms = [...state.rooms];
+      allRooms.push(action.payload as Room);
+      return { ...state, rooms: allRooms };
     default:
       return state;
   }
@@ -101,7 +118,7 @@ const FriendsProvider: FunctionComponent<PropsWithChildren> = ({
 }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  const { invites, friends, room, chat } = useConnection();
+  const { invites, friends, room, chat, username } = useConnection();
 
   console.log("connection friend", { invites, friends, room, chat });
 
@@ -110,30 +127,49 @@ const FriendsProvider: FunctionComponent<PropsWithChildren> = ({
     setFriends(friends);
 
     if (room) {
-      const initialChatMap: Map<string, Array<Chat>> = state.userChats;
-      const initialChat = initialChatMap.set(room, []);
-      setUserChats(initialChat);
+      setRoomData(room);
     }
 
     if (chat) {
-      let key: string;
-      const { to, from, message } = chat;
-
-      if (state.userChats.has(`${to}-${from}`)) {
-        key = `${to}-${from}`;
-      } else {
-        key = `${from}-${to}`;
-      }
-
-      const prevChats = state.userChats.get(key);
-      prevChats?.push({ to, from, message });
-      const allChats = new Map();
-      allChats.set(key, prevChats);
-      console.log({ allChats, key });
-      setUserChats(allChats);
+      setChatData(chat);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invites, friends, room, chat]);
+
+  const setChatData = ({ token, to, from, message }: Chat) => {
+    const allChats = state.userChats.get(token);
+
+    console.log({ allChats });
+
+    if (allChats) {
+      allChats.push({ to, from, message });
+      const userChats = new Map().set(token, allChats);
+      setUserChats(userChats);
+    }
+  };
+
+  const setRoomData = (room: Room) => {
+    if (username === room.initiator && !state.userChats.has(room.data.token)) {
+      createEmptyRoom(room);
+      setSelectedUser({ user: room.data.friends[0], token: room.data.token });
+      setRooms(room);
+      return;
+    }
+
+    const isUserFriend = !!room.data.friends.find(
+      (friend) => friend === username
+    );
+    if (isUserFriend && !state.userChats.has(room.data.token)) {
+      createEmptyRoom(room);
+      setRooms(room);
+    }
+  };
+
+  const createEmptyRoom = (room: Room) => {
+    const initialChatMap = state.userChats;
+    const initialChat = initialChatMap.set(room.data.token, []);
+    setUserChats(initialChat);
+  };
 
   const setFriends = (friends: Array<string>) => {
     dispatch({ type: ActionTypes.FRIENDS, payload: friends });
@@ -147,12 +183,16 @@ const FriendsProvider: FunctionComponent<PropsWithChildren> = ({
     dispatch({ type: ActionTypes.ONLINEUSERS, payload: onlineUsers });
   };
 
-  const setSelectedUser = (selectedUser: string) => {
+  const setSelectedUser = (selectedUser: SelectedUser) => {
     dispatch({ type: ActionTypes.SELECTEDUSER, payload: selectedUser });
   };
 
-  const setUserChats = (userChats: Map<string, Array<Chat>>) => {
+  const setUserChats = (userChats: Map<string, Array<UserChat>>) => {
     dispatch({ type: ActionTypes.USERCHATS, payload: userChats });
+  };
+
+  const setRooms = (room: Room) => {
+    dispatch({ type: ActionTypes.ROOM, payload: room });
   };
 
   return (
