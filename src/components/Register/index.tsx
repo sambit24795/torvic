@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { Modal } from "../../ui";
 import { useConnection } from "../../provider/connection/index";
 import { classNames } from "../utils/index";
-import { useSocket } from "../../hooks";
 
 const Register = () => {
   const [input, setInput] = useState<string>("");
@@ -11,7 +10,10 @@ const Register = () => {
 
   const { username, socketInstance, error, connectSocket } = useConnection();
 
-  const submitHandler = () => {
+  const submitHandler = (
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ) => {
+    event.preventDefault();
     connectSocket(input.trim());
   };
 

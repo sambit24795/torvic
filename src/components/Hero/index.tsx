@@ -3,42 +3,70 @@ import Navbar from "../Navbar";
 import { useFriends, useConnection } from "../../provider";
 import { classNames } from "../utils";
 import MessageBox from "../MessageBox";
-import { useEvent } from "../../hooks";
+import { useEvent, useGroupEvent } from "../../hooks";
 
 const Hero: FunctionComponent = () => {
   const {
-    friendsData: { selectedUser, userChats, friends },
+    friendsData: {
+      selectedUser,
+      userChats,
+      friends,
+      groupChats,
+      selectedGroup,
+      groupRooms,
+    },
   } = useFriends();
   const { username, socketInstance } = useConnection();
 
   const sendEvent = useEvent();
+  const sendGroupEvent = useGroupEvent();
 
-  const chats = userChats.get(selectedUser?.token!);
+  const chats = selectedUser
+    ? userChats.get(selectedUser?.token!)
+    : groupChats.get(selectedGroup!);
 
-  console.log({ userChats, chats });
 
   const sendHandler = (message: string) => {
     if (!socketInstance) {
       return;
     }
 
-    console.log({ selectedUser });
+    if (!selectedUser) {
+      sendGroupEvent(socketInstance, {
+        from: username,
+        message,
+        token: selectedGroup!,
+      });
+      return;
+    }
 
     sendEvent(socketInstance, {
       from: username,
       to: selectedUser?.user!,
       message,
-      token: selectedUser?.token!
+      token: selectedUser?.token!,
     });
   };
 
-  const isSelectedUserFriend = !!friends.find(
-    (friend) => friend === selectedUser?.user
-  );
+  const isSelectedUserFriend = selectedUser
+    ? !!friends.find((friend) => friend === selectedUser?.user)
+    : groupRooms
+        .find((group) => group.token === selectedGroup)
+        ?.members.find((member) => member === username);
 
   return (
     <div className="flex flex-col overflow-auto">
-      {isSelectedUserFriend ? <Navbar username={selectedUser?.user!} /> : null}
+      {isSelectedUserFriend ? (
+        <Navbar
+          username={
+            selectedUser?.user! ||
+            (groupRooms
+              .find((group) => group.token === selectedGroup)
+              ?.members.join(" ,") ??
+              "")
+          }
+        />
+      ) : null}
       <div className="flex-col items-start justify-start flex-1 w-full h-full overflow-y-auto scrollbar hero-content ">
         {chats?.length ? (
           chats.map(({ from, message }, index) => (

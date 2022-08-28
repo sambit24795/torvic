@@ -8,8 +8,9 @@ interface AvatarListProps {
   invitations?: boolean;
   invitationList: Array<string>;
   username: string;
-  onClick: (_data: string) => void;
+  onClick: (_data: string, _isGroup: boolean) => void;
   selectedUser: string;
+  isGroup: boolean;
 }
 
 enum InvitationActions {
@@ -23,8 +24,12 @@ const AvatarList: FunctionComponent<AvatarListProps> = ({
   username,
   onClick,
   selectedUser,
+  isGroup,
 }) => {
-  const getApiResponse = async (type: InvitationActions, friend: string) => {
+  const getFriendsApiResponse = async (
+    type: InvitationActions,
+    friend: string
+  ) => {
     return await axios.post(
       `http://localhost:4000/api/add-friend?action=${type}`,
       {
@@ -34,8 +39,27 @@ const AvatarList: FunctionComponent<AvatarListProps> = ({
     );
   };
 
-  const actionHandler = async (type: InvitationActions, friend: string) => {
-    await getApiResponse(type, friend);
+  const getGroupApiResponse = async (
+    username: string,
+    groupname: string,
+    type: InvitationActions
+  ) => {
+    return await axios.post(
+      `http://localhost:4000/api/add-group?action=${type}`,
+      {
+        username,
+        groupname,
+      }
+    );
+  };
+
+  const actionHandler = async (type: InvitationActions, name: string) => {
+    if (isGroup) {
+      getGroupApiResponse(username, name, type);
+      return;
+    }
+
+    await getFriendsApiResponse(type, name);
   };
 
   return (
@@ -48,7 +72,7 @@ const AvatarList: FunctionComponent<AvatarListProps> = ({
               "flex items-center justify-start cursor-pointer hover:text-primary-focus",
               data === selectedUser ? "text-primary-focus" : ""
             )}
-            onClick={onClick.bind(null, data)}
+            onClick={onClick.bind(null, data, isGroup)}
           >
             <Avatar initial={data[0]} />
             <span className="px-4 cursor-pointer ">{data}</span>
@@ -79,7 +103,9 @@ const AvatarList: FunctionComponent<AvatarListProps> = ({
           </div>
         ))
       ) : (
-        <div className="text-center">No Users Available</div>
+        <div className="text-center">
+          {!isGroup ? "no users available" : "no groups available"}
+        </div>
       )}
     </div>
   );

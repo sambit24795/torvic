@@ -8,7 +8,14 @@ import { useState } from "react";
 import { Socket } from "socket.io-client";
 
 import { useSocket } from "../../hooks";
-import { Chat, ConnectSocket, Room } from "../../hooks/types";
+import {
+  ConnectSocket,
+  Room,
+  GroupInvitation,
+  GroupRoom,
+  ReceivedChat,
+  ReceivedGroupChat,
+} from "../../hooks/types";
 
 type ConnectionContextType = {
   socketInstance: Socket | null;
@@ -20,7 +27,11 @@ type ConnectionContextType = {
   invites: Array<string>;
   friends: Array<string>;
   room: Room | null;
-  chat: Chat | null;
+  chat: ReceivedChat | null;
+  groupData: GroupInvitation | null;
+  groups: Array<string>;
+  groupRoom: GroupRoom | null;
+  groupChat: ReceivedGroupChat | null;
 };
 
 const ConnectionContext = createContext<ConnectionContextType>({
@@ -34,6 +45,10 @@ const ConnectionContext = createContext<ConnectionContextType>({
   friends: [],
   room: null,
   chat: null,
+  groupData: null,
+  groups: [],
+  groupRoom: null,
+  groupChat: null,
 });
 
 const ConnectionProvider: FunctionComponent<PropsWithChildren> = ({
@@ -45,7 +60,11 @@ const ConnectionProvider: FunctionComponent<PropsWithChildren> = ({
   const [invites, setInvites] = useState<Array<string>>([]);
   const [friends, setFriends] = useState<Array<string>>([]);
   const [room, setRoom] = useState<Room | null>(null);
-  const [chat, setChat] = useState<Chat | null>(null);
+  const [chat, setChat] = useState<ReceivedChat | null>(null);
+  const [groupData, setGroupData] = useState<GroupInvitation | null>(null);
+  const [groups, setGroups] = useState<Array<string>>([]);
+  const [groupRoom, setGroupRoom] = useState<GroupRoom | null>(null);
+  const [groupChat, setGoupChat] = useState<ReceivedGroupChat | null>(null);
 
   const setSocketData = (socket: Socket, socketUser: string) => {
     setSocketInstance(socket);
@@ -75,6 +94,18 @@ const ConnectionProvider: FunctionComponent<PropsWithChildren> = ({
       console.log("connection chat", data);
       setChat(data);
     },
+    onGroupInvited: (data) => {
+      setGroupData(data);
+    },
+    onGroupAdded: (data) => {
+      setGroups(data);
+    },
+    onGroupRoomReceived: (data) => {
+      setGroupRoom(data);
+    },
+    onGroupMessageReceived: (data) => {
+      setGoupChat(data);
+    },
   });
 
   return (
@@ -90,6 +121,10 @@ const ConnectionProvider: FunctionComponent<PropsWithChildren> = ({
         friends,
         room,
         chat,
+        groupData,
+        groups,
+        groupRoom,
+        groupChat,
       }}
     >
       {children}

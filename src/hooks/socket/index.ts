@@ -1,5 +1,11 @@
 import io, { Socket } from "socket.io-client";
-import { SocketCallbacks, Chat, RoomType } from "../types";
+import {
+  SocketCallbacks,
+  Chat,
+  RoomType,
+  GroupRoomType,
+  GroupChat,
+} from "../types";
 
 let socket: Socket | null;
 
@@ -62,6 +68,34 @@ function useSocket(cb?: SocketCallbacks) {
         cb.onRoomnameReceived(data);
       }
     });
+
+    socketInstance.on("receive-group-room", (data) => {
+      console.log("receive group room", data);
+      if (cb?.onGroupRoomReceived) {
+        cb.onGroupRoomReceived(data);
+      }
+    });
+
+    socketInstance.on("receive-group-message", (data) => {
+      console.log("receive group message", data);
+      if (cb?.onGroupMessageReceived) {
+        cb.onGroupMessageReceived(data);
+      }
+    });
+
+    socketInstance.on("group-invite", (data) => {
+      console.log("group invite", data);
+      if (cb?.onGroupInvited) {
+        cb.onGroupInvited(data);
+      }
+    });
+
+    socketInstance.on("add-group", (data) => {
+      console.log("group add", data);
+      if (cb?.onGroupAdded) {
+        cb.onGroupAdded(data.groups);
+      }
+    });
   };
 }
 
@@ -74,6 +108,18 @@ export function useEvent() {
 export function useRoom() {
   return function (socket: Socket, data: RoomType) {
     socket.emit("send-room", data);
+  };
+}
+
+export function useGroupRoom() {
+  return function (socket: Socket, data: GroupRoomType) {
+    socket.emit("send-group-room", data);
+  };
+}
+
+export function useGroupEvent() {
+  return function (socket: Socket, data: GroupChat & { token: string }) {
+    socket.emit("send-group-message", data);
   };
 }
 

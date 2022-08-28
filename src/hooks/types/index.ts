@@ -1,4 +1,9 @@
 import { Socket } from "socket.io-client";
+import { UserChat } from "../../provider/friends";
+
+export type GroupData = { groupname: string; allMembers: Array<string> };
+
+export type GroupInvitation = { user: string; data: GroupData };
 
 export type SocketHook = (_cb?: SocketCallbacks) => ConnectSocket;
 
@@ -12,7 +17,15 @@ export type OnFriendUpdated = (_friends: Array<string>) => void;
 
 export type OnRoomnameReceived = (_data: Room) => void;
 
-export type OnMessageReceived = (_data: Chat) => void;
+export type OnMessageReceived = (_data: ReceivedChat) => void;
+
+export type OnGroupInvitationReceived = (_data: GroupInvitation) => void;
+
+export type OnGroupAdded = (_data: Array<string>) => void;
+
+export type OnGroupRoomReceived = (_data: GroupRoom) => void;
+
+export type OnGroupMessageReceived = (_data: ReceivedGroupChat) => void;
 
 export type SocketCallbacks = {
   onDataAdded?: OnDataAdded;
@@ -21,6 +34,10 @@ export type SocketCallbacks = {
   onFriendUpdated?: OnFriendUpdated;
   onRoomnameReceived?: OnRoomnameReceived;
   onMessageReceived?: OnMessageReceived;
+  onGroupInvited?: OnGroupInvitationReceived;
+  onGroupAdded?: OnGroupAdded;
+  onGroupRoomReceived?: OnGroupRoomReceived;
+  onGroupMessageReceived?: OnGroupMessageReceived;
 };
 
 export type Chat = {
@@ -50,4 +67,30 @@ export type RoomData = {
 export type Room = {
   initiator: string;
   data: RoomData;
+};
+
+export type ReceivedChat = {
+  token: string;
+  data: Array<UserChat>;
+};
+
+export type GroupRoomType = {
+  groupname: string;
+  username: string;
+};
+
+export type GroupRoom = {
+  initiator: string;
+  members: Array<string>;
+  token: string;
+};
+
+export type GroupChat = {
+  from: string;
+  message: string;
+};
+
+export type ReceivedGroupChat = {
+  token: string;
+  data: Array<GroupChat>;
 };

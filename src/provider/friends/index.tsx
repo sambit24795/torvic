@@ -7,7 +7,16 @@ import {
   useReducer,
 } from "react";
 
-import { Chat, Room } from "../../hooks/types";
+import {
+  Chat,
+  Room,
+  GroupInvitation,
+  GroupData,
+  GroupRoom,
+  GroupChat,
+  ReceivedChat,
+  ReceivedGroupChat,
+} from "../../hooks/types";
 import { useConnection } from "../connection";
 
 type FriendsContextType = {
@@ -17,22 +26,30 @@ type FriendsContextType = {
   setOnlineUsers: (_onlineUsers: Array<string>) => void;
   setSelectedUser: (_selectedUser: SelectedUser) => void;
   setUserChats: (_userChats: Map<string, Array<Chat>>) => void;
+  setSelectedGroup: (data: SelectedGroup) => void;
 };
 
-interface SelectedUser {
+type SelectedUser = {
   user: string;
   token: string;
-}
+} | null;
 
-type UserChat = Omit<Chat, "token">;
+type SelectedGroup = string | null;
+
+export type UserChat = Omit<Chat, "token">;
 
 interface FriendsState {
   friends: Array<string>;
   invitations: Array<string>;
-  onlineUsers: Array<String>;
+  onlineUsers: Array<string>;
   selectedUser: SelectedUser | null;
   userChats: Map<string, Array<UserChat>>;
   rooms: Array<Room>;
+  groupInvitations: Map<string, GroupData[]>;
+  groups: Array<string>;
+  groupRooms: Array<GroupRoom>;
+  groupChats: Map<string, Array<GroupChat>>;
+  selectedGroup: SelectedGroup;
 }
 
 enum ActionTypes {
@@ -42,6 +59,11 @@ enum ActionTypes {
   SELECTEDUSER = "SELECTEDUSER",
   USERCHATS = "USERCHATS",
   ROOM = "ROOM",
+  GROUPINVITATION = "GROUPINVITATION",
+  GROUP = "GROUP",
+  GROUPROOM = "GROUPROOM",
+  GROUPCHAT = "GROUPCHAT",
+  SELECTEDGROUP = "SELECTEDGROUP",
 }
 
 interface Action {
@@ -60,21 +82,55 @@ interface UserChatsType extends Action {
   payload: Map<string, Array<UserChat>>;
 }
 
+interface GroupChatType extends Action {
+  payload: Map<string, Array<GroupChat>>;
+}
+
 interface RoomType extends Action {
   payload: Room;
 }
 
-type FriendsAction = FriendsType | SelectedUserType | UserChatsType | RoomType;
+interface GroupInvitationType extends Action {
+  payload: Map<string, GroupData[]>;
+}
+
+interface GroupsType extends Action {
+  payload: Array<string>;
+}
+
+interface GroupRoomType extends Action {
+  payload: GroupRoom;
+}
+
+interface SelectedGroupType extends Action {
+  payload: SelectedGroup;
+}
+
+type FriendsAction =
+  | FriendsType
+  | SelectedUserType
+  | UserChatsType
+  | RoomType
+  | GroupInvitationType
+  | GroupsType
+  | GroupRoomType
+  | GroupChatType
+  | SelectedGroupType;
 
 type FriendsReducer<T, U> = (_state: T, _action: U) => T;
 
 const initialState: FriendsState = {
   friends: [],
   invitations: [],
+  groupInvitations: new Map(),
   onlineUsers: [],
   selectedUser: null,
   userChats: new Map(),
   rooms: [],
+  groups: [],
+  groupRooms: [],
+  groupChats: new Map(),
+  selectedGroup: null,
 };
 
 const reducer: FriendsReducer<FriendsState, FriendsAction> = (
@@ -99,6 +155,24 @@ const reducer: FriendsReducer<FriendsState, FriendsAction> = (
       const allRooms = [...state.rooms];
       allRooms.push(action.payload as Room);
       return { ...state, rooms: allRooms };
+    case ActionTypes.GROUPINVITATION:
+      return {
+        ...state,
+        groupInvitations: action.payload as Map<string, GroupData[]>,
+      };
+    case ActionTypes.GROUP:
+      return { ...state, groups: action.payload as Array<string> };
+    case ActionTypes.GROUPROOM:
+      const allGroupRooms = [...state.groupRooms];
+      allGroupRooms.push(action.payload as GroupRoom);
+      return { ...state, groupRooms: allGroupRooms };
+    case ActionTypes.GROUPCHAT:
+      return {
+        ...state,
+        groupChats: action.payload as Map<string, Array<GroupChat>>,
+      };
+    case ActionTypes.SELECTEDGROUP:
+      return { ...state, selectedGroup: action.payload as SelectedGroup };
     default:
       return state;
   }
@@ -111,6 +185,7 @@ const FriendsContext = createContext<FriendsContextType>({
   setOnlineUsers: () => {},
   setUserChats: () => {},
   setSelectedUser: () => {},
+  setSelectedGroup: () => {},
 });
 
 const FriendsProvider: FunctionComponent<PropsWithChildren> = ({
@@ -118,9 +193,17 @@ const FriendsProvider: FunctionComponent<PropsWithChildren> = ({
 }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  const { invites, friends, room, chat, username } = useConnection();
-
-  console.log("connection friend", { invites, friends, room, chat });
+  const {
+    invites,
+    friends,
+    room,
+    chat,
+    username,
+    groupData,
+    groups,
+    groupRoom,
+    groupChat,
+  } = useConnection();
 
   useEffect(() => {
     setInvitations(invites);
@@ -133,19 +216,59 @@ const FriendsProvider: FunctionComponent<PropsWithChildren> = ({
     if (chat) {
       setChatData(chat);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invites, friends, room, chat]);
 
-  const setChatData = ({ token, to, from, message }: Chat) => {
-    const allChats = state.userChats.get(token);
-
-    console.log({ allChats });
-
-    if (allChats) {
-      allChats.push({ to, from, message });
-      const userChats = new Map().set(token, allChats);
-      setUserChats(userChats);
+    if (groupData) {
+      setGroupInvitationData(groupData);
     }
+
+    if (groups) {
+      setGroups(groups);
+    }
+
+    if (groupRoom) {
+      setGroupRoomData(groupRoom);
+    }
+
+    if (groupChat) {
+      setGroupChatData(groupChat);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invites, friends, room, chat, groupData, groups, groupRoom, groupChat]);
+
+  const setGroupChatData = (groupChat: ReceivedGroupChat) => {
+    const allGroupChats = state.groupChats;
+    allGroupChats.set(groupChat.token, groupChat.data);
+    const allGroupChatsMap = new Map(allGroupChats);
+
+    console.log("After Data Receive", { allGroupChats, allGroupChatsMap });
+    setGroupChats(allGroupChatsMap);
+  };
+
+  const setGroupRoomData = (data: GroupRoom) => {
+    if (username === data.initiator && !state.groupChats.has(data.token)) {
+      createEmptyGroupChat(data.token);
+      setGroupRooms(data);
+      setSelectedGroup(data.token);
+      return;
+    }
+
+    const isUserInGroup = data.members.find((member) => member === username);
+    if (isUserInGroup && !state.groupChats.has(data.token)) {
+      createEmptyGroupChat(data.token);
+      setGroupRooms(data);
+    }
+  };
+
+  const setGroupInvitationData = ({ data, user }: GroupInvitation) => {
+    const allGroupInvitations = new Map().set(user, data);
+    setGroupInvitations(allGroupInvitations);
+  };
+
+  const setChatData = ({ token, data }: ReceivedChat) => {
+    const allChats = state.userChats;
+    allChats.set(token, data);
+    const allChatsMap = new Map(allChats);
+    setUserChats(allChatsMap);
   };
 
   const setRoomData = (room: Room) => {
@@ -171,6 +294,12 @@ const FriendsProvider: FunctionComponent<PropsWithChildren> = ({
     setUserChats(initialChat);
   };
 
+  const createEmptyGroupChat = (room: string) => {
+    const initialGroupChatMap = state.groupChats;
+    const initialgroupChat = initialGroupChatMap.set(room, []);
+    setGroupChats(initialgroupChat);
+  };
+
   const setFriends = (friends: Array<string>) => {
     dispatch({ type: ActionTypes.FRIENDS, payload: friends });
   };
@@ -180,6 +309,7 @@ const FriendsProvider: FunctionComponent<PropsWithChildren> = ({
   };
 
   const setOnlineUsers = (onlineUsers: Array<string>) => {
+    console.log("set data", { onlineUsers });
     dispatch({ type: ActionTypes.ONLINEUSERS, payload: onlineUsers });
   };
 
@@ -195,6 +325,26 @@ const FriendsProvider: FunctionComponent<PropsWithChildren> = ({
     dispatch({ type: ActionTypes.ROOM, payload: room });
   };
 
+  const setGroupInvitations = (invites: Map<string, GroupData[]>) => {
+    dispatch({ type: ActionTypes.GROUPINVITATION, payload: invites });
+  };
+
+  const setGroups = (data: Array<string>) => {
+    dispatch({ type: ActionTypes.GROUP, payload: data });
+  };
+
+  const setGroupRooms = (data: GroupRoom) => {
+    dispatch({ type: ActionTypes.GROUPROOM, payload: data });
+  };
+
+  const setGroupChats = (data: Map<string, Array<GroupChat>>) => {
+    dispatch({ type: ActionTypes.GROUPCHAT, payload: data });
+  };
+
+  const setSelectedGroup = (data: SelectedGroup) => {
+    dispatch({ type: ActionTypes.SELECTEDGROUP, payload: data });
+  };
+
   return (
     <FriendsContext.Provider
       value={{
@@ -204,6 +354,7 @@ const FriendsProvider: FunctionComponent<PropsWithChildren> = ({
         setOnlineUsers,
         setSelectedUser,
         setUserChats,
+        setSelectedGroup,
       }}
     >
       {children}
