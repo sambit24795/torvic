@@ -122,6 +122,7 @@ const Sidebar: FunctionComponent<PropsWithChildren> = () => {
   };
 
   const friendHandler = (name: string, socketInstance: Socket) => {
+    setSelectedGroup(null);
     const allRooms = [...friendsData.rooms];
     for (let i = 0; i < allRooms.length; i++) {
       const isUserCreator =

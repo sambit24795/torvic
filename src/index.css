@@ -25,6 +25,10 @@
   .max-content-height {
     max-height: 824px;
   }
+
+  .video-height {
+    height: 600px
+  }
 }
 
 /* * {

@@ -239,8 +239,6 @@ const FriendsProvider: FunctionComponent<PropsWithChildren> = ({
     const allGroupChats = state.groupChats;
     allGroupChats.set(groupChat.token, groupChat.data);
     const allGroupChatsMap = new Map(allGroupChats);
-
-    console.log("After Data Receive", { allGroupChats, allGroupChatsMap });
     setGroupChats(allGroupChatsMap);
   };
 
@@ -309,7 +307,6 @@ const FriendsProvider: FunctionComponent<PropsWithChildren> = ({
   };
 
   const setOnlineUsers = (onlineUsers: Array<string>) => {
-    console.log("set data", { onlineUsers });
     dispatch({ type: ActionTypes.ONLINEUSERS, payload: onlineUsers });
   };
 
